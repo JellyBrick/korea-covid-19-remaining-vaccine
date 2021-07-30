@@ -180,7 +180,7 @@ class App {
                         "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
                 )
                 .header(NORMAL_HEADERS)
-                .timeout(5)
+                .timeout(5000)
                 .responseObject<FindVaccineResult>(mapper = mapper)
                 .third
 
