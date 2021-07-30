@@ -175,10 +175,8 @@ class App {
         val (response, fuelError) = fuelManager
             .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
             .body(
-                mapper.writeValueAsString(
-                    "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
-                        "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
-                )
+                "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
+                    "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
             )
             .header(NORMAL_HEADERS)
             .timeout(5)
