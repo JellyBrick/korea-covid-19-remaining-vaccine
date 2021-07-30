@@ -1,5 +1,7 @@
 package be.zvz.covid.remaining.vaccine
 
+import cmonster.browsers.ChromeBrowser
+import cmonster.cookies.DecryptedCookie
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule
@@ -25,7 +27,7 @@ class App {
 
     private val config: Config
 
-    private val cookies = Cookies.ChromeBrowser().getCookiesForDomain(".kakao.com")
+    private val cookies = ChromeBrowser().getCookiesForDomain(".kakao.com")
     private val fuelManager = FuelManager()
 
     init {
@@ -212,7 +214,7 @@ class App {
                                 Headers.COOKIE,
                                 mutableListOf<String>().apply {
                                     cookies.forEach { cookie ->
-                                        if (cookie is Cookies.DecryptedCookie) {
+                                        if (cookie is DecryptedCookie) {
                                             add(cookie.name + "=" + cookie.decryptedValue)
                                         }
                                     }
@@ -274,7 +276,7 @@ class App {
                 Headers.COOKIE,
                 mutableListOf<String>().apply {
                     cookies.forEach { cookie ->
-                        if (cookie is Cookies.DecryptedCookie) {
+                        if (cookie is DecryptedCookie) {
                             add(cookie.name + "=" + cookie.decryptedValue)
                         }
                     }
@@ -333,7 +335,7 @@ class App {
                 Headers.COOKIE,
                 mutableListOf<String>().apply {
                     cookies.forEach { cookie ->
-                        if (cookie is Cookies.DecryptedCookie) {
+                        if (cookie is DecryptedCookie) {
                             add(cookie.name + "=" + cookie.decryptedValue)
                         }
                     }
