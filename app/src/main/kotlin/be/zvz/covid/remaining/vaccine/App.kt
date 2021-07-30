@@ -358,6 +358,7 @@ class App {
             when (userInfoResult.user?.status) {
                 "NORMAL" -> {
                     log.info("사용자 정보를 불러오는데 성공했습니다.")
+                    return
                 }
                 "UNKNOWN" -> {
                     log.info("상태를 알 수 없는 사용자입니다. 1339 또는 보건소에 문의해주세요.")
