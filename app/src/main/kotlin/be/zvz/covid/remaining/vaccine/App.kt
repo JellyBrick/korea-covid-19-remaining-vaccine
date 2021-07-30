@@ -10,6 +10,8 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.Headers
 import com.github.kittinunf.fuel.jackson.responseObject
+import com.pengrad.telegrambot.TelegramBot
+import com.pengrad.telegrambot.request.SendMessage
 import org.slf4j.LoggerFactory
 import java.io.* // ktlint-disable no-wildcard-imports
 import java.security.cert.X509Certificate
@@ -26,6 +28,8 @@ class App {
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     private val config: Config
+    private lateinit var telegramBotConfig: TelegramBotConfig
+    private lateinit var telegramBot: TelegramBot
 
     private val cookies = ChromeBrowser().getCookiesForDomain(".kakao.com")
     private val fuelManager = FuelManager()
@@ -50,6 +54,16 @@ class App {
 
         BufferedWriter(FileWriter(configFile)).use {
             it.write(mapper.writeValueAsString(config))
+        }
+
+        try {
+            val telegramBotConfigFile = File("telegram_config.json")
+            if (telegramBotConfigFile.exists()) {
+                telegramBotConfig = mapper.readValue(telegramBotConfigFile)
+                telegramBot = TelegramBot(telegramBotConfig.token)
+            }
+        } catch (ignored: IOException) {
+            log.error("텔레그램 봇 설정 파일(telegram_config.json)에 오류가 있어, 텔레그램 알림이 활성화되지 않았습니다.")
         }
     }
 
@@ -401,10 +415,16 @@ class App {
 
     private fun sendSuccess(message: String) {
         log.info(message)
+        if (::telegramBot.isInitialized) {
+            telegramBot.execute(SendMessage(telegramBotConfig.chatId, "\uD83D\uDFE2" + message))
+        }
     }
 
     private fun sendError(message: String, throwable: Throwable) {
         log.error(message, throwable)
+        if (::telegramBot.isInitialized) {
+            telegramBot.execute(SendMessage(telegramBotConfig.chatId, "\uD83D\uDD34" + message + "\nStacktrace:\n" + throwable.stackTrace))
+        }
     }
 
     companion object {

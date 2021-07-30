@@ -51,6 +51,8 @@ dependencies {
 
     implementation(group = "org.xerial", name = "sqlite-jdbc", version = "3.36.0.1")
 
+    implementation(group = "com.github.pengrad", name = "java-telegram-bot-api", version = "5.2.0")
+
     // Use the Kotlin test library.
     testImplementation(group = "org.jetbrains.kotlin", name = "kotlin-test")
 
