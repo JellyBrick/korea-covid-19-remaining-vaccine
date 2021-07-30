@@ -11,6 +11,8 @@ import com.github.kittinunf.fuel.core.Headers
 import com.github.kittinunf.fuel.jackson.responseObject
 import org.slf4j.LoggerFactory
 import java.io.* // ktlint-disable no-wildcard-imports
+import java.security.cert.X509Certificate
+import javax.net.ssl.* // ktlint-disable no-wildcard-imports
 import javax.sound.sampled.AudioSystem
 import kotlin.system.exitProcess
 
@@ -47,6 +49,43 @@ class App {
 
         BufferedWriter(FileWriter(configFile)).use {
             it.write(mapper.writeValueAsString(config))
+        }
+    }
+
+    fun ignoreSsl() {
+        val hv = HostnameVerifier { _, _ -> true }
+        trustAllHttpsCertificates()
+        HttpsURLConnection.setDefaultHostnameVerifier(hv)
+    }
+
+    private fun trustAllHttpsCertificates() {
+        val trustAllCerts = arrayOfNulls<TrustManager>(1)
+        val tm = MiTM()
+        trustAllCerts[0] = tm
+        val sc = SSLContext.getInstance("SSL")
+        sc.init(null, trustAllCerts, null)
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
+    }
+
+    internal class MiTM : TrustManager, X509TrustManager {
+        override fun getAcceptedIssuers(): Array<X509Certificate>? {
+            return null
+        }
+
+        fun isServerTrusted(certs: Array<X509Certificate?>?): Boolean {
+            return true
+        }
+
+        fun isClientTrusted(certs: Array<X509Certificate?>?): Boolean {
+            return true
+        }
+
+        override fun checkServerTrusted(certs: Array<X509Certificate?>?, authType: String?) {
+            return
+        }
+
+        override fun checkClientTrusted(certs: Array<X509Certificate?>?, authType: String?) {
+            return
         }
     }
 
@@ -131,6 +170,7 @@ class App {
     )
 
     private fun findVaccine() {
+        ignoreSsl()
         val (response, fuelError) = fuelManager
             .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
             .body(
@@ -165,6 +205,7 @@ class App {
                             val lefts: List<OrganizationInfo>
                         )
 
+                        ignoreSsl()
                         val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
                             .get("https://vaccine.kakao.com/api/v2/org/org_code/${it.orgCode}")
                             .header(VACCINE_HEADER)
@@ -214,6 +255,7 @@ class App {
     )
 
     private fun tryReservation(orgCode: String, vaccineCode: String, retry: Boolean = false): Boolean {
+        ignoreSsl()
         val (response, fuelError) = fuelManager.post("https://vaccine.kakao.com/api/v1/reservation" + if (retry) "/retry" else "")
             .body(
                 "{\"from\":\"Map\",\"vaccineCode\":$vaccineCode,\n" +
@@ -267,6 +309,7 @@ class App {
             val error: String?
         )
 
+        ignoreSsl()
         val (response, fuelError) = fuelManager.get("https://vaccine.kakao.com/api/v1/user")
             .header(VACCINE_HEADER)
             .header(Headers.COOKIE, cookies)
