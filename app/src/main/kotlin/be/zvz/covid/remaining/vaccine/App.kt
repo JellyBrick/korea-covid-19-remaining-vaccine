@@ -1,6 +1,5 @@
 package be.zvz.covid.remaining.vaccine
 
-import cmonster.browsers.ChromeBrowser
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule
@@ -26,7 +25,7 @@ class App {
 
     private val config: Config
 
-    private val cookies = ChromeBrowser().getCookiesForDomain(".kakao.com")
+    private val cookies = Cookies.ChromeBrowser().getCookiesForDomain(".kakao.com")
     private val fuelManager = FuelManager()
 
     init {
@@ -52,7 +51,7 @@ class App {
         }
     }
 
-    fun ignoreSsl() {
+    private fun ignoreSsl() {
         val hv = HostnameVerifier { _, _ -> true }
         trustAllHttpsCertificates()
         HttpsURLConnection.setDefaultHostnameVerifier(hv)
@@ -209,7 +208,16 @@ class App {
                         val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
                             .get("https://vaccine.kakao.com/api/v2/org/org_code/${it.orgCode}")
                             .header(VACCINE_HEADER)
-                            .header(Headers.COOKIE, cookies)
+                            .header(
+                                Headers.COOKIE,
+                                mutableListOf<String>().apply {
+                                    cookies.forEach { cookie ->
+                                        if (cookie is Cookies.DecryptedCookie) {
+                                            add(cookie.name + "=" + cookie.decryptedValue)
+                                        }
+                                    }
+                                }.joinToString("; ")
+                            )
                             .responseObject<OrganizationInfos>()
                             .third
 
@@ -262,7 +270,16 @@ class App {
                     "\"orgCode\":$orgCode,\"distance\":null}",
             )
             .header(VACCINE_HEADER)
-            .header(Headers.COOKIE, cookies)
+            .header(
+                Headers.COOKIE,
+                mutableListOf<String>().apply {
+                    cookies.forEach { cookie ->
+                        if (cookie is Cookies.DecryptedCookie) {
+                            add(cookie.name + "=" + cookie.decryptedValue)
+                        }
+                    }
+                }.joinToString("; ")
+            )
             .responseObject<ReservationResult>()
             .third
 
@@ -312,7 +329,16 @@ class App {
         ignoreSsl()
         val (response, fuelError) = fuelManager.get("https://vaccine.kakao.com/api/v1/user")
             .header(VACCINE_HEADER)
-            .header(Headers.COOKIE, cookies)
+            .header(
+                Headers.COOKIE,
+                mutableListOf<String>().apply {
+                    cookies.forEach { cookie ->
+                        if (cookie is Cookies.DecryptedCookie) {
+                            add(cookie.name + "=" + cookie.decryptedValue)
+                        }
+                    }
+                }.joinToString("; ")
+            )
             .responseObject<UserInfoResult>()
             .third
 
