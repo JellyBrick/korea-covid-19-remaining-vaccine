@@ -41,7 +41,7 @@ dependencies {
     implementation(group = "com.github.kittinunf.fuel", name = "fuel-jackson", version = "2.3.1")
 
     implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.2.5")
-    implementation(group = "org.fusesource.jansi", name = "jansi", version = "1.18")
+    implementation(group = "org.fusesource.jansi", name = "jansi", version = "2.3.4")
 
     implementation(group = "org.apache.maven.shared", name = "maven-shared-utils", version = "3.3.4")
     implementation(group = "net.java.dev.jna", name = "jna", version = "5.8.0")
