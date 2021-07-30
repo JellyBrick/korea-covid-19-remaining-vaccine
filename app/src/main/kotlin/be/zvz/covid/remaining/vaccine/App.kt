@@ -258,7 +258,7 @@ class App {
         return false
     }
 
-    fun checkUserInfoLoaded() {
+    private fun checkUserInfoLoaded() {
         data class UserInfo(
             val status: String?
         )
