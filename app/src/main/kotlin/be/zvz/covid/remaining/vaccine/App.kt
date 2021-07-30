@@ -249,6 +249,7 @@ class App {
                 }
             }
         }
+        log.info("잔여백신이 없습니다.")
         Thread.sleep((config.searchTime * 1000L).toLong())
         findVaccine()
     }
