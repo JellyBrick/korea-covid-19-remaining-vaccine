@@ -171,85 +171,86 @@ class App {
     )
 
     private fun findVaccine() {
-        ignoreSsl()
-        val (response, fuelError) = fuelManager
-            .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
-            .body(
-                "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
-                    "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
-            )
-            .header(NORMAL_HEADERS)
-            .timeout(5)
-            .responseObject<FindVaccineResult>(mapper = mapper)
-            .third
+        while (true) {
+            ignoreSsl()
+            val (response, fuelError) = fuelManager
+                .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
+                .body(
+                    "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
+                        "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
+                )
+                .header(NORMAL_HEADERS)
+                .timeout(5)
+                .responseObject<FindVaccineResult>(mapper = mapper)
+                .third
 
-        fuelError?.let {
-            close(throwable = it.exception)
-        }
+            fuelError?.let {
+                close(throwable = it.exception)
+            }
 
-        response?.let { result ->
-            result.organizations.forEach {
-                if (it.status == "AVAILABLE" || it.leftCounts != 0) {
-                    log.info("${it.orgName}에서 백신을 ${it.leftCounts}개 발견했습니다.")
-                    log.info("주소는 ${it.address}입니다.")
+            response?.let { result ->
+                result.organizations.forEach {
+                    if (it.status == "AVAILABLE" || it.leftCounts != 0) {
+                        log.info("${it.orgName}에서 백신을 ${it.leftCounts}개 발견했습니다.")
+                        log.info("주소는 ${it.address}입니다.")
 
-                    val vaccineFoundCode = if (config.vaccineType == "ANY") {
-                        data class OrganizationInfo(
-                            val leftCount: Int,
-                            val vaccineName: String,
-                            val vaccineCode: String
-                        )
-
-                        data class OrganizationInfos(
-                            val lefts: List<OrganizationInfo>
-                        )
-
-                        ignoreSsl()
-                        val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
-                            .get("https://vaccine.kakao.com/api/v2/org/org_code/${it.orgCode}")
-                            .header(VACCINE_HEADER)
-                            .header(
-                                Headers.COOKIE,
-                                mutableListOf<String>().apply {
-                                    cookies.forEach { cookie ->
-                                        if (cookie is DecryptedCookie) {
-                                            add(cookie.name + "=" + cookie.decryptedValue)
-                                        }
-                                    }
-                                }.joinToString("; ")
+                        val vaccineFoundCode = if (config.vaccineType == "ANY") {
+                            data class OrganizationInfo(
+                                val leftCount: Int,
+                                val vaccineName: String,
+                                val vaccineCode: String
                             )
-                            .responseObject<OrganizationInfos>()
-                            .third
 
-                        checkOrganizationFuelError?.let { fe ->
-                            close(fe.exception)
-                        }
-                        checkOrganizationResponse?.let { infos ->
-                            infos.lefts.forEach { info ->
-                                if (info.leftCount != 0) {
-                                    log.info("${info.vaccineName} 백신을 ${info.leftCount}개 발견했습니다.")
-                                    info.vaccineCode
-                                } else {
-                                    log.error("${info.vaccineName} 백신이 없습니다.")
+                            data class OrganizationInfos(
+                                val lefts: List<OrganizationInfo>
+                            )
+
+                            ignoreSsl()
+                            val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
+                                .get("https://vaccine.kakao.com/api/v2/org/org_code/${it.orgCode}")
+                                .header(VACCINE_HEADER)
+                                .header(
+                                    Headers.COOKIE,
+                                    mutableListOf<String>().apply {
+                                        cookies.forEach { cookie ->
+                                            if (cookie is DecryptedCookie) {
+                                                add(cookie.name + "=" + cookie.decryptedValue)
+                                            }
+                                        }
+                                    }.joinToString("; ")
+                                )
+                                .responseObject<OrganizationInfos>()
+                                .third
+
+                            checkOrganizationFuelError?.let { fe ->
+                                close(fe.exception)
+                            }
+                            checkOrganizationResponse?.let { infos ->
+                                infos.lefts.forEach { info ->
+                                    if (info.leftCount != 0) {
+                                        log.info("${info.vaccineName} 백신을 ${info.leftCount}개 발견했습니다.")
+                                        info.vaccineCode
+                                    } else {
+                                        log.error("${info.vaccineName} 백신이 없습니다.")
+                                    }
                                 }
                             }
+                            return@forEach
+                        } else {
+                            config.vaccineType
                         }
-                        return@forEach
-                    } else {
-                        config.vaccineType
-                    }
 
-                    log.info("$vaccineFoundCode 백신으로 예약을 시도합니다.")
+                        log.info("$vaccineFoundCode 백신으로 예약을 시도합니다.")
 
-                    if (tryReservation(it.orgCode, vaccineFoundCode)) {
-                        close()
+                        if (tryReservation(it.orgCode, vaccineFoundCode)) {
+                            close()
+                        }
                     }
                 }
             }
+            log.info("잔여백신이 없습니다.")
+            Thread.sleep((config.searchTime * 1000L).toLong())
         }
-        log.info("잔여백신이 없습니다.")
-        Thread.sleep((config.searchTime * 1000L).toLong())
-        findVaccine()
     }
 
     data class ReservationOrganization(
