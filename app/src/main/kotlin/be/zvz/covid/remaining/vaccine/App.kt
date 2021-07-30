@@ -184,6 +184,30 @@ class App {
         val address: String
     )
 
+    private fun showOrganizationList() {
+        ignoreSsl()
+        val (response, fuelError) = fuelManager
+            .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
+            .body(
+                "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
+                    "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
+            )
+            .header(NORMAL_HEADERS)
+            .timeout(5000)
+            .responseObject<FindVaccineResult>(mapper = mapper)
+            .third
+
+        fuelError?.let {
+            close(throwable = it.exception)
+        }
+        response?.let { result ->
+            log.info("=== 감지된 병원 목록 ===")
+            result.organizations.forEachIndexed { index, organization ->
+                log.info("${index + 1}: ${organization.orgName}")
+            }
+        }
+    }
+
     private fun findVaccine() {
         while (true) {
             ignoreSsl()
@@ -391,6 +415,7 @@ class App {
 
     fun start() {
         checkUserInfoLoaded()
+        showOrganizationList()
         findVaccine()
         close()
     }
