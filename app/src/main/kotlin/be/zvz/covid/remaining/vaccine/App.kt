@@ -214,7 +214,7 @@ class App {
             val (response, fuelError) = fuelManager
                 .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
                 .body(
-                    "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
+                    "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\"," +
                         "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
                 )
                 .header(NORMAL_HEADERS)
@@ -306,8 +306,8 @@ class App {
         ignoreSsl()
         val (response, fuelError) = fuelManager.post("https://vaccine.kakao.com/api/v1/reservation" + if (retry) "/retry" else "")
             .body(
-                "{\"from\":\"Map\",\"vaccineCode\":$vaccineCode,\n" +
-                    "\"orgCode\":$orgCode,\"distance\":null}",
+                "{\"from\":\"Map\",\"vaccineCode\":\"$vaccineCode\"," +
+                    "\"orgCode\":\"$orgCode\",\"distance\":null}",
             )
             .header(VACCINE_HEADER)
             .header(
