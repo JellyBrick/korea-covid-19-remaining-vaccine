@@ -448,7 +448,14 @@ class App {
     private fun sendError(message: String, throwable: Throwable) {
         log.error(message, throwable)
         if (::telegramBot.isInitialized) {
-            telegramBot.execute(SendMessage(telegramBotConfig.chatId, "\uD83D\uDD34" + message + "\nStacktrace:\n" + throwable.stackTrace))
+            telegramBot.execute(
+                SendMessage(
+                    telegramBotConfig.chatId,
+                    "\uD83D\uDD34$message\nStacktrace:\n" + StringWriter().apply {
+                        throwable.printStackTrace(PrintWriter(this))
+                    }.toString()
+                )
+            )
         }
     }
 
