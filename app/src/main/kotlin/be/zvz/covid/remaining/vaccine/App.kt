@@ -187,7 +187,7 @@ class App {
     private fun showOrganizationList() {
         ignoreSsl()
         val (response, fuelError) = fuelManager
-            .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
+            .post("https://vaccine-map.kakao.com/api/v3/vaccine/left_count_by_coords")
             .body(
                 "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
                     "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
@@ -212,7 +212,7 @@ class App {
         while (true) {
             ignoreSsl()
             val (response, fuelError) = fuelManager
-                .post("https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords")
+                .post("https://vaccine-map.kakao.com/api/v3/vaccine/left_count_by_coords")
                 .body(
                     "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\"," +
                         "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
@@ -245,7 +245,7 @@ class App {
 
                             ignoreSsl()
                             val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
-                                .get("https://vaccine.kakao.com/api/v2/org/org_code/${it.orgCode}")
+                                .get("https://vaccine.kakao.com/api/v3/org/org_code/${it.orgCode}")
                                 .header(VACCINE_HEADER)
                                 .header(
                                     Headers.COOKIE,
