@@ -304,7 +304,7 @@ class App {
 
     private fun tryReservation(orgCode: String, vaccineCode: String, retry: Boolean = false): Boolean {
         ignoreSsl()
-        val (response, fuelError) = fuelManager.post("https://vaccine.kakao.com/api/v1/reservation" + if (retry) "/retry" else "")
+        val (response, fuelError) = fuelManager.post("https://vaccine.kakao.com/api/v2/reservation" + if (retry) "/retry" else "")
             .body(
                 "{\"from\":\"Map\",\"vaccineCode\":\"$vaccineCode\"," +
                     "\"orgCode\":\"$orgCode\",\"distance\":null}",
