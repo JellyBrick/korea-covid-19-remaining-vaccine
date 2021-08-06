@@ -284,7 +284,7 @@ class App {
         ignoreSsl()
         val (response, fuelError) = fuelManager.post("https://vaccine.kakao.com/api/v2/reservation" + if (retry) "/retry" else "")
             .body(
-                "{\"from\":\"Map\",\"vaccineCode\":\"$vaccineCode\"," +
+                "{\"from\":\"List\",\"vaccineCode\":\"$vaccineCode\"," +
                     "\"orgCode\":\"$orgCode\",\"distance\":null}",
             )
             .header(VACCINE_HEADER)
