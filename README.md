@@ -1,6 +1,6 @@
 # korea-covid-19-remaining-vaccine ![Build Status](https://github.com/JellyBrick/korea-covid-19-remaining-vaccine/workflows/Java%20CI/badge.svg) [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FJellyBrick%2Fkorea-covid-19-remaining-vaccine&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=true)](https://hits.seeyoufarm.com) 
 
-[파이썬 버전](https://github.com/SJang1/korea-covid-19-remaining-vaccine-macro)을 코틀린으로 포팅하고, 로직을 개선했습니다.
+[파이썬 버전](https://github.com/SJang1/korea-covid-19-remaining-vaccine-macro)을 코틀린으로 포팅하고, 로직을 개선하여 성능을 향상시켰습니다.
 
 ## 사용 방법
 
