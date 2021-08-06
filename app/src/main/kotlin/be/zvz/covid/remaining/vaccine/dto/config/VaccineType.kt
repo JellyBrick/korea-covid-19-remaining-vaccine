@@ -1,4 +1,4 @@
-package be.zvz.covid.remaining.vaccine
+package be.zvz.covid.remaining.vaccine.dto.config
 
 data class VaccineType(
     val name: String,

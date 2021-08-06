@@ -1,7 +1,17 @@
 package be.zvz.covid.remaining.vaccine
 
+import be.zvz.covid.remaining.vaccine.dto.config.Config
+import be.zvz.covid.remaining.vaccine.dto.config.Latitude
+import be.zvz.covid.remaining.vaccine.dto.config.TelegramBotConfig
+import be.zvz.covid.remaining.vaccine.dto.config.VaccineType
+import be.zvz.covid.remaining.vaccine.dto.reservation.FindVaccineResult
+import be.zvz.covid.remaining.vaccine.dto.reservation.OrganizationInfos
+import be.zvz.covid.remaining.vaccine.dto.reservation.ReservationResult
+import be.zvz.covid.remaining.vaccine.dto.user.UserInfo
+import be.zvz.covid.remaining.vaccine.dto.user.UserInfoResult
 import cmonster.browsers.ChromeBrowser
 import cmonster.cookies.DecryptedCookie
+import com.fasterxml.jackson.core.JacksonException
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule
@@ -62,6 +72,7 @@ class App {
                 telegramBotConfig = mapper.readValue(telegramBotConfigFile)
                 telegramBot = TelegramBot(telegramBotConfig.token)
             }
+            log.info("텔레그램 알림이 활성화되었습니다!")
         } catch (ignored: IOException) {
             log.error("텔레그램 봇 설정 파일(telegram_config.json)에 오류가 있어, 텔레그램 알림이 활성화되지 않았습니다.")
         }
@@ -172,18 +183,6 @@ class App {
         }
     }
 
-    data class FindVaccineResult(
-        val organizations: List<Organization>
-    )
-
-    data class Organization(
-        val status: String,
-        val leftCounts: Int,
-        val orgName: String,
-        val orgCode: String,
-        val address: String
-    )
-
     private fun showOrganizationList() {
         ignoreSsl()
         val (response, fuelError) = fuelManager
@@ -233,16 +232,6 @@ class App {
                         log.info("주소는 ${it.address}입니다.")
 
                         val vaccineFoundCode = if (config.vaccineType == "ANY") {
-                            data class OrganizationInfo(
-                                val leftCount: Int,
-                                val vaccineName: String,
-                                val vaccineCode: String
-                            )
-
-                            data class OrganizationInfos(
-                                val lefts: List<OrganizationInfo>
-                            )
-
                             ignoreSsl()
                             val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
                                 .get("https://vaccine.kakao.com/api/v3/org/org_code/${it.orgCode}")
@@ -290,17 +279,6 @@ class App {
             Thread.sleep((config.searchTime * 1000L).toLong())
         }
     }
-
-    data class ReservationOrganization(
-        val orgName: String,
-        val phoneNumber: String,
-        val address: String
-    )
-
-    data class ReservationResult(
-        val code: String,
-        val organization: ReservationOrganization?
-    )
 
     private fun tryReservation(orgCode: String, vaccineCode: String, retry: Boolean = false): Boolean {
         ignoreSsl()
@@ -358,14 +336,6 @@ class App {
     }
 
     private fun checkUserInfoLoaded() {
-        data class UserInfo(
-            val status: String?
-        )
-        data class UserInfoResult(
-            val user: UserInfo?,
-            val error: String?
-        )
-
         ignoreSsl()
         val (response, fuelError) = fuelManager.get("https://vaccine.kakao.com/api/v1/user")
             .header(VACCINE_HEADER)
@@ -388,25 +358,58 @@ class App {
             log.error("로그인이 되어 있는데도 실행이 안 된다면, 카카오톡 접속 후, 잔여백신 알림을 신청해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
         }
 
-        fuelError?.let {
-            logFailToLoadUserInfo()
-            close(it.exception)
-        }
-        response?.let { userInfoResult ->
-            when (userInfoResult.user?.status) {
+        data class InvalidUserStateException(override val message: String?, val throwable: Throwable? = null) : IllegalStateException(message, throwable)
+
+        fun userState(userInfo: UserInfo?) {
+            when (userInfo?.status) {
                 "NORMAL" -> {
                     log.info("사용자 정보를 불러오는데 성공했습니다.")
                     return
                 }
                 "UNKNOWN" -> {
-                    log.info("상태를 알 수 없는 사용자입니다. 1339 또는 보건소에 문의해주세요.")
-                    close(RuntimeException("상태를 알 수 없음"))
+                    val unknownUserStr = "상태를 알 수 없는 사용자입니다. 1339 또는 보건소에 문의해주세요."
+                    log.error(unknownUserStr)
+                    close(InvalidUserStateException(unknownUserStr))
+                }
+                "REFUSED" -> {
+                    val refusedUserStr = "${userInfo.name}님은 백신을 예약하고 방문하지 않았던 것으로 보입니다. 잔여백신 예약이 불가능합니다."
+                    log.error(refusedUserStr)
+                    close(InvalidUserStateException(refusedUserStr))
+                }
+                "ALREADY_RESERVED" -> {
+                    val alreadyReservedUserStr = "${userInfo.name}님은 이미 백신 예약이 완료되어있습니다.."
+                    log.error(alreadyReservedUserStr)
+                    close(InvalidUserStateException(alreadyReservedUserStr))
+                }
+                "ALREADY_VACCINATED" -> {
+                    val alreadyVaccinatedUserStr = "${userInfo.name}님은 이미 접종이 완료되었습니다."
+                    log.error(alreadyVaccinatedUserStr)
+                    close(InvalidUserStateException(alreadyVaccinatedUserStr))
                 }
                 else -> {
-                    log.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
-                    close()
+                    val unknownStr = "알려지지 않은 상태 코드입니다. 상태코드: ${userInfo?.status}"
+                    log.error(unknownStr)
+                    close(InvalidUserStateException(unknownStr))
                 }
             }
+        }
+
+        fuelError?.let {
+            logFailToLoadUserInfo()
+            if (it.exception !is JacksonException) {
+                val userInfoResult: UserInfoResult = mapper.readValue(it.errorData)
+                userInfoResult.error?.let { error ->
+                    close(InvalidUserStateException(error))
+                }
+                userInfoResult.user?.let { userInfo ->
+                    userState(userInfo)
+                }
+            }
+            close(it.exception)
+        }
+
+        response?.let { userInfoResult ->
+            userState(userInfoResult.user)
         }
 
         logFailToLoadUserInfo()
