@@ -301,11 +301,7 @@ class App {
             .responseObject<ReservationResult>()
             .third
 
-        fuelError?.let {
-            log.error("오류. 아래 메시지를 보고, 예약이 신청된 병원 또는 1339에 예약이 되었는지 확인해보세요.")
-            close(it.exception)
-        }
-        response?.let {
+        fun parseReservationResult(it: ReservationResult): Boolean {
             return when (it.code) {
                 "NO_VACANCY" -> {
                     log.error("잔여백신 접종 신청이 선착순 마감되었습니다.")
@@ -331,6 +327,21 @@ class App {
                     false
                 }
             }
+        }
+
+        fuelError?.let {
+            if (it.exception !is JacksonException) {
+                val reservationResult = parseReservationResult(mapper.readValue(it.errorData))
+                if (reservationResult) {
+                    return reservationResult
+                }
+            } else {
+                log.error("오류. 아래 메시지를 보고, 예약이 신청된 병원 또는 1339에 예약이 되었는지 확인해보세요.")
+                close(it.exception)
+            }
+        }
+        response?.let {
+            return parseReservationResult(it)
         }
         return false
     }
@@ -363,7 +374,7 @@ class App {
         fun userState(userInfo: UserInfo?) {
             when (userInfo?.status) {
                 "NORMAL" -> {
-                    log.info("사용자 정보를 불러오는데 성공했습니다.")
+                    log.info("사용자 정보를 불러오는데 성공했습니다. 사용자명: ${userInfo.name}")
                     return
                 }
                 "UNKNOWN" -> {
