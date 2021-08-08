@@ -421,6 +421,7 @@ class App {
 
         response?.let { userInfoResult ->
             userState(userInfoResult.user)
+            return
         }
 
         logFailToLoadUserInfo()
