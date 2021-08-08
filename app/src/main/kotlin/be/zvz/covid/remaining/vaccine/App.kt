@@ -71,8 +71,8 @@ class App {
             if (telegramBotConfigFile.exists()) {
                 telegramBotConfig = mapper.readValue(telegramBotConfigFile)
                 telegramBot = TelegramBot(telegramBotConfig.token)
+                log.info("텔레그램 알림이 활성화되었습니다!")
             }
-            log.info("텔레그램 알림이 활성화되었습니다!")
         } catch (ignored: IOException) {
             log.error("텔레그램 봇 설정 파일(telegram_config.json)에 오류가 있어, 텔레그램 알림이 활성화되지 않았습니다.")
         }
