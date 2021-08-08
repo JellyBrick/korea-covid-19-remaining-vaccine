@@ -8,9 +8,9 @@
 
 ## 다운로드
 
-https://github.com/JellyBrick/korea-covid-19-remaining-vaccine/actions
+실행 가능한 jar는 아래 링크에서 받을 수 있습니다. (GitHub Actions에서 빌드됨)
 
-실행 가능한 jar는 Actions artifacts에서 받을 수 있습니다.
+https://nightly.link/JellyBrick/korea-covid-19-remaining-vaccine/workflows/gradle/main/Covid-remaining-8.zip
 
 ## 포함되어있는 라이브러리
 
