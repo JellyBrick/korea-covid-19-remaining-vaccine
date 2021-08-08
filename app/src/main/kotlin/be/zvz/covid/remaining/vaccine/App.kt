@@ -409,11 +409,11 @@ class App {
             logFailToLoadUserInfo()
             if (it.exception !is JacksonException) {
                 val userInfoResult: UserInfoResult = mapper.readValue(it.errorData)
-                userInfoResult.error?.let { error ->
-                    close(InvalidUserStateException(error))
-                }
                 userInfoResult.user?.let { userInfo ->
                     userState(userInfo)
+                }
+                userInfoResult.error?.let { error ->
+                    close(InvalidUserStateException(error))
                 }
             }
             close(it.exception)
