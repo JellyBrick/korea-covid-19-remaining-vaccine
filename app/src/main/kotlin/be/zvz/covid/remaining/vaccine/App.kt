@@ -24,6 +24,7 @@ import com.pengrad.telegrambot.TelegramBot
 import com.pengrad.telegrambot.request.SendMessage
 import org.slf4j.LoggerFactory
 import java.io.* // ktlint-disable no-wildcard-imports
+import java.net.SocketTimeoutException
 import java.security.cert.X509Certificate
 import javax.net.ssl.* // ktlint-disable no-wildcard-imports
 import javax.sound.sampled.AudioSystem
@@ -197,7 +198,9 @@ class App {
             .third
 
         fuelError?.let {
-            close(throwable = it.exception)
+            if (it.exception !is SocketTimeoutException) {
+                close(throwable = it.exception)
+            }
         }
         response?.let { result ->
             log.info("=== 감지된 병원 목록 ===")
