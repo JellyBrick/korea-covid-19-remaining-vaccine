@@ -285,7 +285,7 @@ class App {
                         }
 
                         if (vaccineFoundCode === null) {
-                            log.error("$vaccineFoundCode 백신이 없습니다.")
+                            log.error("백신이 없습니다.")
                             return@topLevelForEach
                         }
 
