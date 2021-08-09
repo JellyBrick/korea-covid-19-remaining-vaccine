@@ -275,10 +275,6 @@ class App {
                                     // 될 수 있는 경우 AZ 대신 화이자 / 모더나 선택
                                 }
                             }
-                            if (vaccineFoundCode === null) {
-                                log.error("백신이 없습니다.")
-                                return@topLevelForEach
-                            }
                         } else {
                             for (vaccineInfo in it.vaccineQuantity.list) {
                                 if (KAKAO_TO_NAVER_MAP[config.vaccineType] == vaccineInfo.vaccineType && vaccineInfo.quantity > 0) {
@@ -286,6 +282,10 @@ class App {
                                     break
                                 }
                             }
+                        }
+
+                        if (vaccineFoundCode === null) {
+                            log.error("$vaccineFoundCode 백신이 없습니다.")
                             return@topLevelForEach
                         }
 
