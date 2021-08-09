@@ -246,13 +246,13 @@ class App {
                                         isNmap = false,
                                         isBounds = false
                                     ),
-                                    query = "query vaccineList(\$input: RestsInput, \$businessesInput: RestsBusinessesInput, \$isNmap: Boolean!, \$isBounds: Boolean!) {\\n  rests(input: \$input) {\\n    businesses(input: \$businessesInput) {\\n      total\\n      vaccineLastSave\\n      isUpdateDelayed\\n      items {\\n        id\\n        name\\n        dbType\\n        phone\\n        virtualPhone\\n        hasBooking\\n        hasNPay\\n        bookingReviewCount\\n        description\\n        distance\\n        commonAddress\\n        roadAddress\\n        address\\n        imageUrl\\n        imageCount\\n        tags\\n        distance\\n        promotionTitle\\n        category\\n        routeUrl\\n        businessHours\\n        x\\n        y\\n        imageMarker @include(if: \$isNmap) {\\n          marker\\n          markerSelected\\n          __typename\\n        }\\n        markerLabel @include(if: \$isNmap) {\\n          text\\n          style\\n          __typename\\n        }\\n        isDelivery\\n        isTakeOut\\n        isPreOrder\\n        isTableOrder\\n        naverBookingCategory\\n        bookingDisplayName\\n        bookingBusinessId\\n        bookingVisitId\\n        bookingPickupId\\n        vaccineOpeningHour {\\n          isDayOff\\n          standardTime\\n          __typename\\n        }\\n        vaccineQuantity {\\n          totalQuantity\\n          totalQuantityStatus\\n          startTime\\n          endTime\\n          vaccineOrganizationCode\\n          list {\\n            quantity\\n            quantityStatus\\n            vaccineType\\n            __typename\\n          }\\n          __typename\\n        }\\n        __typename\\n      }\\n      optionsForMap @include(if: \$isBounds) {\\n        maxZoom\\n        minZoom\\n        includeMyLocation\\n        maxIncludePoiCount\\n        center\\n        __typename\\n      }\\n      __typename\\n    }\\n    queryResult {\\n      keyword\\n      vaccineFilter\\n      categories\\n      region\\n      isBrandList\\n      filterBooking\\n      hasNearQuery\\n      isPublicMask\\n      __typename\\n    }\\n    __typename\\n  }\\n}\\n"
+                                    query = "query vaccineList(\$input: RestsInput, \$businessesInput: RestsBusinessesInput, \$isNmap: Boolean!, \$isBounds: Boolean!) {\n  rests(input: \$input) {\n    businesses(input: \$businessesInput) {\n      total\n      vaccineLastSave\n      isUpdateDelayed\n      items {\n        id\n        name\n        dbType\n        phone\n        virtualPhone\n        hasBooking\n        hasNPay\n        bookingReviewCount\n        description\n        distance\n        commonAddress\n        roadAddress\n        address\n        imageUrl\n        imageCount\n        tags\n        distance\n        promotionTitle\n        category\n        routeUrl\n        businessHours\n        x\n        y\n        imageMarker @include(if: \$isNmap) {\n          marker\n          markerSelected\n          __typename\n        }\n        markerLabel @include(if: \$isNmap) {\n          text\n          style\n          __typename\n        }\n        isDelivery\n        isTakeOut\n        isPreOrder\n        isTableOrder\n        naverBookingCategory\n        bookingDisplayName\n        bookingBusinessId\n        bookingVisitId\n        bookingPickupId\n        vaccineOpeningHour {\n          isDayOff\n          standardTime\n          __typename\n        }\n        vaccineQuantity {\n          totalQuantity\n          totalQuantityStatus\n          startTime\n          endTime\n          vaccineOrganizationCode\n          list {\n            quantity\n            quantityStatus\n            vaccineType\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      optionsForMap @include(if: \$isBounds) {\n        maxZoom\n        minZoom\n        includeMyLocation\n        maxIncludePoiCount\n        center\n        __typename\n      }\n      __typename\n    }\n    queryResult {\n      keyword\n      vaccineFilter\n      categories\n      region\n      isBrandList\n      filterBooking\n      hasNearQuery\n      isPublicMask\n      __typename\n    }\n    __typename\n  }\n}\n"
                                 )
                             )
                         }
                     )
                 )
-                .header(NORMAL_HEADERS)
+                .header(NAVER_HEADERS)
                 .timeout(5000)
                 .responseObject<List<VaccineSearchResult>>(mapper = mapper)
                 .third
@@ -262,7 +262,7 @@ class App {
             }
 
             response?.let { result ->
-                result.first().data.businesses.items.forEach topLevelForEach@{
+                result.first().data.rests.businesses.items.forEach topLevelForEach@{
                     if (it.vaccineQuantity.totalQuantity > 0) {
                         log.info("${it.name}에서 백신을 ${it.vaccineQuantity.totalQuantity}개 발견했습니다.")
                         log.info("주소는 ${it.roadAddress}입니다.")
@@ -286,6 +286,7 @@ class App {
                                     break
                                 }
                             }
+                            return@topLevelForEach
                         }
 
                         log.info("$vaccineFoundCode 백신으로 예약을 시도합니다.")
@@ -505,6 +506,14 @@ class App {
             "Accept-Language" to "en-us",
             "User-Agent" to "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KAKAOTALK 9.4.2",
             "Referer" to "https://vaccine-map.kakao.com/"
+        )
+
+        val NAVER_HEADERS = mapOf(
+            "Accept" to "application/json, text/plain, */*",
+            "Content-Type" to "application/json;charset=utf-8",
+            "Origin" to "https://m.place.naver.com",
+            "User-Agent" to "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KAKAOTALK 9.4.2",
+            "Referer" to "https://m.place.naver.com/rest/vaccine?vaccineFilter=used"
         )
 
         val VACCINE_HEADER = mapOf(
