@@ -25,12 +25,15 @@ import com.pengrad.telegrambot.request.SendMessage
 import org.slf4j.LoggerFactory
 import java.io.* // ktlint-disable no-wildcard-imports
 import java.security.cert.X509Certificate
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import javax.net.ssl.* // ktlint-disable no-wildcard-imports
 import javax.sound.sampled.AudioSystem
 import kotlin.system.exitProcess
 
 class App {
     private val log = LoggerFactory.getLogger(this::class.java)
+    private val threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())
 
     private val mapper = JsonMapper()
         .registerKotlinModule()
@@ -226,6 +229,7 @@ class App {
             }
 
             response?.let { result ->
+                val tasks = mutableListOf<Future<*>>()
                 result.organizations.forEach {
                     if (it.status == "AVAILABLE" || it.leftCounts != 0) {
                         log.info("${it.orgName}에서 백신을 ${it.leftCounts}개 발견했습니다.")
@@ -269,11 +273,16 @@ class App {
 
                         log.info("$vaccineFoundCode 백신으로 예약을 시도합니다.")
 
-                        if (tryReservation(it.orgCode, vaccineFoundCode)) {
-                            close()
-                        }
+                        tasks.add(
+                            threadPool.submit {
+                                if (tryReservation(it.orgCode, vaccineFoundCode)) {
+                                    close()
+                                }
+                            }
+                        )
                     }
                 }
+                tasks.forEach(Future<*>::get) // join
             }
             log.info("잔여백신이 없습니다.")
             Thread.sleep((config.searchTime * 1000L).toLong())
