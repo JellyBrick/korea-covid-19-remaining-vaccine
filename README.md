@@ -12,6 +12,11 @@
 
 https://nightly.link/JellyBrick/korea-covid-19-remaining-vaccine/workflows/gradle/main/Covid-remaining-8.zip
 
+### 실험적 / 선택한 백신만 예약 시도하는 버전 다운로드
+
+https://github.com/JellyBrick/korea-covid-19-remaining-vaccine/suites/3444626118/artifacts/81699164
+
+
 ## 포함되어있는 라이브러리
 
 https://github.com/benjholla/CookieMonster
