@@ -278,7 +278,11 @@ class App {
                 .third
 
             fuelError?.let {
-                close(throwable = it.exception)
+                if (it.response.statusCode == 500) {
+                    log.warn("백신 검색 서버 내부에서 오류 발생 (HTTP CODE 500). 재시도합니다.")
+                } else {
+                    close(throwable = it.exception)
+                }
             }
 
             response?.let { result ->
