@@ -7,9 +7,7 @@ data class MapSearchInput(
 ) {
     data class Variables(
         val input: Input,
-        val businessesInput: BusinessesInput,
-        val isNmap: Boolean,
-        val isBounds: Boolean
+        val businessesInput: BusinessesInput
     ) {
         data class Input(
             val keyword: String,

@@ -10,7 +10,6 @@ data class VaccineSearchResult(
             val businesses: Businesses
         ) {
             data class Businesses(
-                val total: Int,
                 val items: List<Business>,
             ) {
                 data class Business(

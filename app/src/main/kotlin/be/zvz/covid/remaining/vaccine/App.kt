@@ -212,8 +212,10 @@ class App {
 
     private fun findVaccine() {
         while (true) {
-            val centerX = min(config.top.x, config.bottom.x) + (max(config.top.x, config.bottom.x) - min(config.top.x, config.bottom.x) / 2)
-            val centerY = min(config.top.y, config.bottom.y) + (max(config.top.y, config.bottom.y) - min(config.top.y, config.bottom.y) / 2)
+            val centerX = min(config.top.x, config.bottom.x) +
+                (max(config.top.x, config.bottom.x) - min(config.top.x, config.bottom.x) / 2)
+            val centerY = min(config.top.y, config.bottom.y) +
+                (max(config.top.y, config.bottom.y) - min(config.top.y, config.bottom.y) / 2)
             ignoreSsl()
             val (response, fuelError) = fuelManager
                 .post("https://api.place.naver.com/graphql")
@@ -242,11 +244,29 @@ class App {
                                             x = centerX.toString(),
                                             y = centerY.toString(),
                                             sortingOrder = "distance"
-                                        ),
-                                        isNmap = false,
-                                        isBounds = false
+                                        )
                                     ),
-                                    query = "query vaccineList(\$input: RestsInput, \$businessesInput: RestsBusinessesInput, \$isNmap: Boolean!, \$isBounds: Boolean!) {\n  rests(input: \$input) {\n    businesses(input: \$businessesInput) {\n      total\n      vaccineLastSave\n      isUpdateDelayed\n      items {\n        id\n        name\n        dbType\n        phone\n        virtualPhone\n        hasBooking\n        hasNPay\n        bookingReviewCount\n        description\n        distance\n        commonAddress\n        roadAddress\n        address\n        imageUrl\n        imageCount\n        tags\n        distance\n        promotionTitle\n        category\n        routeUrl\n        businessHours\n        x\n        y\n        imageMarker @include(if: \$isNmap) {\n          marker\n          markerSelected\n          __typename\n        }\n        markerLabel @include(if: \$isNmap) {\n          text\n          style\n          __typename\n        }\n        isDelivery\n        isTakeOut\n        isPreOrder\n        isTableOrder\n        naverBookingCategory\n        bookingDisplayName\n        bookingBusinessId\n        bookingVisitId\n        bookingPickupId\n        vaccineOpeningHour {\n          isDayOff\n          standardTime\n          __typename\n        }\n        vaccineQuantity {\n          totalQuantity\n          totalQuantityStatus\n          startTime\n          endTime\n          vaccineOrganizationCode\n          list {\n            quantity\n            quantityStatus\n            vaccineType\n            __typename\n          }\n          __typename\n        }\n        __typename\n      }\n      optionsForMap @include(if: \$isBounds) {\n        maxZoom\n        minZoom\n        includeMyLocation\n        maxIncludePoiCount\n        center\n        __typename\n      }\n      __typename\n    }\n    queryResult {\n      keyword\n      vaccineFilter\n      categories\n      region\n      isBrandList\n      filterBooking\n      hasNearQuery\n      isPublicMask\n      __typename\n    }\n    __typename\n  }\n}\n"
+                                    query = "query vaccineList(\$input: RestsInput, \$businessesInput: RestsBusinessesInput) {\n" +
+                                        "  rests(input: \$input) {\n" +
+                                        "    businesses(input: \$businessesInput) {\n" +
+                                        "      items {\n" +
+                                        "        id\n" +
+                                        "        name\n" +
+                                        "        roadAddress\n" +
+                                        "        vaccineQuantity {\n" +
+                                        "          totalQuantity\n" +
+                                        "          totalQuantityStatus\n" +
+                                        "          vaccineOrganizationCode\n" +
+                                        "          list {\n" +
+                                        "            quantity\n" +
+                                        "            quantityStatus\n" +
+                                        "            vaccineType\n" +
+                                        "            __typename\n" +
+                                        "          }\n" +
+                                        "          __typename\n" +
+                                        "        }\n" +
+                                        "      }" +
+                                        "}}}"
                                 )
                             )
                         }
