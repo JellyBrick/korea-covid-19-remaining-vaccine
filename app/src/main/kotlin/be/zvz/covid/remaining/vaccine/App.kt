@@ -13,6 +13,7 @@ import cmonster.browsers.ChromeBrowser
 import cmonster.cookies.DecryptedCookie
 import com.fasterxml.jackson.core.JacksonException
 import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -25,6 +26,7 @@ import com.pengrad.telegrambot.request.SendMessage
 import org.slf4j.LoggerFactory
 import java.io.* // ktlint-disable no-wildcard-imports
 import java.security.cert.X509Certificate
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import javax.net.ssl.* // ktlint-disable no-wildcard-imports
@@ -282,7 +284,15 @@ class App {
                         )
                     }
                 }
-                tasks.forEach(Future<*>::get) // join
+                tasks.forEach {
+                    try {
+                        it.get()
+                    } catch (e: ExecutionException) {
+                        if (e.cause !is MismatchedInputException) {
+                            throw e
+                        } // hacky solution
+                    }
+                } // join
             }
             log.info("잔여백신이 없습니다.")
             Thread.sleep((config.searchTime * 1000L).toLong())
