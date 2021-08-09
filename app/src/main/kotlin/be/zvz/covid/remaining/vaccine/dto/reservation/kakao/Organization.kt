@@ -1,4 +1,4 @@
-package be.zvz.covid.remaining.vaccine.dto.reservation
+package be.zvz.covid.remaining.vaccine.dto.reservation.kakao
 
 data class Organization(
     val status: String,
