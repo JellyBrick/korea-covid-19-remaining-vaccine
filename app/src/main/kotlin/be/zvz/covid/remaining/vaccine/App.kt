@@ -4,7 +4,6 @@ import be.zvz.covid.remaining.vaccine.dto.config.Config
 import be.zvz.covid.remaining.vaccine.dto.config.Latitude
 import be.zvz.covid.remaining.vaccine.dto.config.TelegramBotConfig
 import be.zvz.covid.remaining.vaccine.dto.config.VaccineType
-import be.zvz.covid.remaining.vaccine.dto.reservation.kakao.FindVaccineResult
 import be.zvz.covid.remaining.vaccine.dto.reservation.kakao.ReservationResult
 import be.zvz.covid.remaining.vaccine.dto.reservation.naver.MapSearchInput
 import be.zvz.covid.remaining.vaccine.dto.reservation.naver.VaccineSearchResult
@@ -48,6 +47,10 @@ class App {
     private val cookies = ChromeBrowser().getCookiesForDomain(".kakao.com")
     private val fuelManager = FuelManager()
 
+    private val centerX: Double
+    private val centerY: Double
+    private val queryBody: String
+
     init {
         val configFile = File("config.json")
         config = if (configFile.exists()) {
@@ -80,6 +83,57 @@ class App {
         } catch (ignored: IOException) {
             log.error("텔레그램 봇 설정 파일(telegram_config.json)에 오류가 있어, 텔레그램 알림이 활성화되지 않았습니다.")
         }
+
+        centerX = min(config.top.x, config.bottom.x) +
+            (max(config.top.x, config.bottom.x) - min(config.top.x, config.bottom.x) / 2)
+        centerY = min(config.top.y, config.bottom.y) +
+            (max(config.top.y, config.bottom.y) - min(config.top.y, config.bottom.y) / 2)
+        queryBody = mapper.writeValueAsString(
+            mutableListOf<MapSearchInput>().apply {
+                add(
+                    MapSearchInput(
+                        operationName = "vaccineList",
+                        variables = MapSearchInput.Variables(
+                            input = MapSearchInput.Variables.Input(
+                                keyword = "코로나백신위탁의료기관",
+                                x = centerX.toString(),
+                                y = centerY.toString()
+                            ),
+                            businessesInput = MapSearchInput.Variables.BusinessesInput(
+                                bounds = "${min(config.top.x, config.bottom.x)};${
+                                min(
+                                    config.top.y,
+                                    config.bottom.y
+                                )
+                                };${max(config.top.x, config.bottom.x)};${max(config.top.y, config.bottom.y)}",
+                                start = 0,
+                                display = 100,
+                                deviceType = "mobile",
+                                x = centerX.toString(),
+                                y = centerY.toString(),
+                                sortingOrder = "distance"
+                            )
+                        ),
+                        query = "query vaccineList(\$input:RestsInput,\$businessesInput:RestsBusinessesInput){" +
+                            "rests(input:\$input){" +
+                            "businesses(input:\$businessesInput){" +
+                            "items{" +
+                            "id\n" +
+                            "name\n" +
+                            "roadAddress\n" +
+                            "vaccineQuantity{" +
+                            "totalQuantity\n" +
+                            "totalQuantityStatus\n" +
+                            "vaccineOrganizationCode\n" +
+                            "list{" +
+                            "quantity\n" +
+                            "quantityStatus\n" +
+                            "vaccineType" +
+                            "}}}}}}"
+                    )
+                )
+            }
+        )
     }
 
     private fun ignoreSsl() {
@@ -190,106 +244,61 @@ class App {
     private fun showOrganizationList() {
         ignoreSsl()
         val (response, fuelError) = fuelManager
-            .post("https://vaccine-map.kakao.com/api/v3/vaccine/left_count_by_coords")
-            .body(
-                "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\",\n" +
-                    "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
-            )
-            .header(NORMAL_HEADERS)
+            .post("https://api.place.naver.com/graphql")
+            .body(queryBody)
+            .header(NAVER_HEADERS)
             .timeout(5000)
-            .responseObject<FindVaccineResult>(mapper = mapper)
+            .responseObject<List<VaccineSearchResult>>(mapper = mapper)
             .third
 
         fuelError?.let {
-            if (it.exception !is SocketTimeoutException) {
-                close(throwable = it.exception)
+            when {
+                it.response.statusCode == 500 -> {
+                    log.warn("백신 검색 서버 내부에서 오류 발생 (HTTP CODE 500). 재시도합니다.")
+                }
+                it.exception is SocketTimeoutException -> {
+                    log.warn("타임아웃 발생. 재시도합니다.")
+                }
+                else -> {
+                    close(throwable = it.exception)
+                }
             }
         }
         response?.let { result ->
             log.info("=== 감지된 병원 목록 ===")
-            result.organizations.forEachIndexed { index, organization ->
-                log.info("${index + 1}: ${organization.orgName}")
+            result.first().data.rests?.businesses?.items?.forEachIndexed { index, organization ->
+                log.info("${index + 1}: ${organization.name}")
             }
         }
     }
 
     private fun findVaccine() {
         while (true) {
-            val centerX = min(config.top.x, config.bottom.x) +
-                (max(config.top.x, config.bottom.x) - min(config.top.x, config.bottom.x) / 2)
-            val centerY = min(config.top.y, config.bottom.y) +
-                (max(config.top.y, config.bottom.y) - min(config.top.y, config.bottom.y) / 2)
             ignoreSsl()
             val (response, fuelError) = fuelManager
                 .post("https://api.place.naver.com/graphql")
-                .body(
-                    mapper.writeValueAsString(
-                        mutableListOf<MapSearchInput>().apply {
-                            add(
-                                MapSearchInput(
-                                    operationName = "vaccineList",
-                                    variables = MapSearchInput.Variables(
-                                        input = MapSearchInput.Variables.Input(
-                                            keyword = "코로나백신위탁의료기관",
-                                            x = centerX.toString(),
-                                            y = centerY.toString()
-                                        ),
-                                        businessesInput = MapSearchInput.Variables.BusinessesInput(
-                                            bounds = "${min(config.top.x, config.bottom.x)};${
-                                            min(
-                                                config.top.y,
-                                                config.bottom.y
-                                            )
-                                            };${max(config.top.x, config.bottom.x)};${max(config.top.y, config.bottom.y)}",
-                                            start = 0,
-                                            display = 100,
-                                            deviceType = "mobile",
-                                            x = centerX.toString(),
-                                            y = centerY.toString(),
-                                            sortingOrder = "distance"
-                                        )
-                                    ),
-                                    query = "query vaccineList(\$input: RestsInput, \$businessesInput: RestsBusinessesInput) {\n" +
-                                        "  rests(input: \$input) {\n" +
-                                        "    businesses(input: \$businessesInput) {\n" +
-                                        "      items {\n" +
-                                        "        id\n" +
-                                        "        name\n" +
-                                        "        roadAddress\n" +
-                                        "        vaccineQuantity {\n" +
-                                        "          totalQuantity\n" +
-                                        "          totalQuantityStatus\n" +
-                                        "          vaccineOrganizationCode\n" +
-                                        "          list {\n" +
-                                        "            quantity\n" +
-                                        "            quantityStatus\n" +
-                                        "            vaccineType\n" +
-                                        "            __typename\n" +
-                                        "          }\n" +
-                                        "          __typename\n" +
-                                        "        }\n" +
-                                        "      }" +
-                                        "}}}"
-                                )
-                            )
-                        }
-                    )
-                )
+                .body(queryBody)
                 .header(NAVER_HEADERS)
                 .timeout(5000)
                 .responseObject<List<VaccineSearchResult>>(mapper = mapper)
                 .third
 
             fuelError?.let {
-                if (it.response.statusCode == 500) {
-                    log.warn("백신 검색 서버 내부에서 오류 발생 (HTTP CODE 500). 재시도합니다.")
-                } else {
-                    close(throwable = it.exception)
+                when {
+                    it.response.statusCode == 500 -> {
+                        log.warn("백신 검색 서버 내부에서 오류 발생 (HTTP CODE 500). 재시도합니다.")
+                    }
+                    it.exception is SocketTimeoutException -> {
+                        log.warn("타임아웃 발생. 재시도합니다.")
+                    }
+                    else -> {
+                        close(throwable = it.exception)
+                    }
                 }
             }
 
             response?.let { result ->
-                result.first().data.rests?.businesses?.items?.forEach topLevelForEach@{
+                result.first().data.rests?.businesses?.items?.forEach {
                     if (it.vaccineQuantity.totalQuantity > 0) {
                         log.info("${it.name}에서 백신을 ${it.vaccineQuantity.totalQuantity}개 발견했습니다.")
                         log.info("주소는 ${it.roadAddress}입니다.")
@@ -311,15 +320,14 @@ class App {
                             }
                         }
 
-                        if (vaccineFoundCode === null) {
-                            log.error("백신이 없습니다.")
-                            return@topLevelForEach
-                        }
+                        vaccineFoundCode?.let { code ->
+                            log.info("$code 백신으로 예약을 시도합니다.")
 
-                        log.info("$vaccineFoundCode 백신으로 예약을 시도합니다.")
-
-                        if (tryReservation(it.vaccineQuantity.vaccineOrganizationCode, vaccineFoundCode!!)) {
-                            close()
+                            if (tryReservation(it.vaccineQuantity.vaccineOrganizationCode, code)) {
+                                close()
+                            }
+                        } ?: run {
+                            log.warn("백신이 없습니다.")
                         }
                     }
                 }
@@ -350,31 +358,29 @@ class App {
             .responseObject<ReservationResult>()
             .third
 
-        fun parseReservationResult(it: ReservationResult): Boolean {
-            return when (it.code) {
-                "NO_VACANCY" -> {
-                    log.error("잔여백신 접종 신청이 선착순 마감되었습니다.")
-                    false
-                }
-                "TIMEOUT" -> {
-                    log.warn("TIMEOUT, 예약을 재시도합니다.")
-                    tryReservation(orgCode, vaccineCode, true)
-                }
-                "SUCCESS" -> {
-                    sendSuccess(
-                        "백신 접종 신청 완료!" +
-                            it.organization?.let { ro ->
-                                "\n병원 이름: ${ro.orgName}\n" +
-                                    "전화번호: ${ro.phoneNumber}\n" +
-                                    "주소: ${ro.address}"
-                            }
-                    )
-                    true
-                }
-                else -> {
-                    log.error("알 수 없는 오류")
-                    false
-                }
+        fun parseReservationResult(it: ReservationResult): Boolean = when (it.code) {
+            "NO_VACANCY" -> {
+                log.error("잔여백신 접종 신청이 선착순 마감되었습니다.")
+                false
+            }
+            "TIMEOUT" -> {
+                log.warn("TIMEOUT, 예약을 재시도합니다.")
+                tryReservation(orgCode, vaccineCode, true)
+            }
+            "SUCCESS" -> {
+                sendSuccess(
+                    "백신 접종 신청 완료!" +
+                        it.organization?.let { ro ->
+                            "\n병원 이름: ${ro.orgName}\n" +
+                                "전화번호: ${ro.phoneNumber}\n" +
+                                "주소: ${ro.address}"
+                        }
+                )
+                true
+            }
+            else -> {
+                log.error("알 수 없는 오류")
+                false
             }
         }
 
