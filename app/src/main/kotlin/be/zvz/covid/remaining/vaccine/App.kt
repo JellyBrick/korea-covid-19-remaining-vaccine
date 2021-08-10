@@ -321,13 +321,13 @@ class App {
                         }
 
                         vaccineFoundCode?.let { code ->
-                            log.info("$code 백신으로 예약을 시도합니다.")
+                            log.info("${KAKAO_TO_NAVER_MAP[code]} 백신으로 예약을 시도합니다.")
 
                             if (tryReservation(it.vaccineQuantity.vaccineOrganizationCode, code)) {
                                 close()
                             }
                         } ?: run {
-                            log.warn("백신이 없습니다.")
+                            log.warn("원하는 종류의 (${KAKAO_TO_NAVER_MAP[config.vaccineType]}) 백신이 없습니다.")
                         }
                     }
                 }
