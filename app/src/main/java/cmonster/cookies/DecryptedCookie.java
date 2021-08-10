@@ -5,7 +5,7 @@ import java.util.Date;
 
 public class DecryptedCookie extends EncryptedCookie {
 
-	protected String decryptedValue;
+	protected final String decryptedValue;
 	
 	public DecryptedCookie(String name, byte[] encryptedValue, String decryptedValue, Date expires, String path, String domain, boolean secure, boolean httpOnly, File cookieStore) {
 		super(name, encryptedValue, expires, path, domain, secure, httpOnly, cookieStore);

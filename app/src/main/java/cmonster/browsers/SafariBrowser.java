@@ -22,7 +22,7 @@ public class SafariBrowser extends Browser {
 
     @Override
 	protected Set<File> getCookieStores() {
-		HashSet<File> cookieStores = new HashSet<File>();
+		HashSet<File> cookieStores = new HashSet<>();
 
 		// TODO: implement
 		

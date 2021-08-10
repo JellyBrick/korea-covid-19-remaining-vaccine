@@ -27,19 +27,19 @@ public class OS {
 	}
 
     public static boolean isWindows() {
-        return (getOperatingSystem().toLowerCase().indexOf("win") >= 0);
+        return (getOperatingSystem().toLowerCase().contains("win"));
     }
 
     public static boolean isMac() {
-        return (getOperatingSystem().toLowerCase().indexOf("mac") >= 0);
+        return (getOperatingSystem().toLowerCase().contains("mac"));
     }
 
     public static boolean isLinux() {
-        return (getOperatingSystem().toLowerCase().indexOf("nix") >= 0 || getOperatingSystem().toLowerCase().indexOf("nux") >= 0 || getOperatingSystem().toLowerCase().indexOf("aix") > 0 );
+        return (getOperatingSystem().toLowerCase().contains("nix") || getOperatingSystem().toLowerCase().contains("nux") || getOperatingSystem().toLowerCase().indexOf("aix") > 0 );
     }
 
     public static boolean isSolaris() {
-        return (getOperatingSystem().toLowerCase().indexOf("sunos") >= 0);
+        return (getOperatingSystem().toLowerCase().contains("sunos"));
     }
 	
 }
