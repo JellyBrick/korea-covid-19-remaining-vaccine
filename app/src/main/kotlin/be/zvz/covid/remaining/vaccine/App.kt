@@ -4,9 +4,10 @@ import be.zvz.covid.remaining.vaccine.dto.config.Config
 import be.zvz.covid.remaining.vaccine.dto.config.Latitude
 import be.zvz.covid.remaining.vaccine.dto.config.TelegramBotConfig
 import be.zvz.covid.remaining.vaccine.dto.config.VaccineType
-import be.zvz.covid.remaining.vaccine.dto.reservation.FindVaccineResult
-import be.zvz.covid.remaining.vaccine.dto.reservation.OrganizationInfos
-import be.zvz.covid.remaining.vaccine.dto.reservation.ReservationResult
+import be.zvz.covid.remaining.vaccine.dto.reservation.kakao.FindVaccineResult
+import be.zvz.covid.remaining.vaccine.dto.reservation.kakao.ReservationResult
+import be.zvz.covid.remaining.vaccine.dto.reservation.naver.MapSearchInput
+import be.zvz.covid.remaining.vaccine.dto.reservation.naver.VaccineSearchResult
 import be.zvz.covid.remaining.vaccine.dto.user.UserInfo
 import be.zvz.covid.remaining.vaccine.dto.user.UserInfoResult
 import cmonster.browsers.ChromeBrowser
@@ -28,6 +29,8 @@ import java.net.SocketTimeoutException
 import java.security.cert.X509Certificate
 import javax.net.ssl.* // ktlint-disable no-wildcard-imports
 import javax.sound.sampled.AudioSystem
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.system.exitProcess
 
 class App {
@@ -212,67 +215,110 @@ class App {
 
     private fun findVaccine() {
         while (true) {
+            val centerX = min(config.top.x, config.bottom.x) +
+                (max(config.top.x, config.bottom.x) - min(config.top.x, config.bottom.x) / 2)
+            val centerY = min(config.top.y, config.bottom.y) +
+                (max(config.top.y, config.bottom.y) - min(config.top.y, config.bottom.y) / 2)
             ignoreSsl()
             val (response, fuelError) = fuelManager
-                .post("https://vaccine-map.kakao.com/api/v3/vaccine/left_count_by_coords")
+                .post("https://api.place.naver.com/graphql")
                 .body(
-                    "{\"bottomRight\":{\"x\":${config.bottom.x},\"y\":${config.bottom.y}},\"onlyLeft\":false,\"order\":\"latitude\"," +
-                        "\"topLeft\":{\"x\":${config.top.x},\"y\":${config.top.y}}}"
+                    mapper.writeValueAsString(
+                        mutableListOf<MapSearchInput>().apply {
+                            add(
+                                MapSearchInput(
+                                    operationName = "vaccineList",
+                                    variables = MapSearchInput.Variables(
+                                        input = MapSearchInput.Variables.Input(
+                                            keyword = "코로나백신위탁의료기관",
+                                            x = centerX.toString(),
+                                            y = centerY.toString()
+                                        ),
+                                        businessesInput = MapSearchInput.Variables.BusinessesInput(
+                                            bounds = "${min(config.top.x, config.bottom.x)};${
+                                            min(
+                                                config.top.y,
+                                                config.bottom.y
+                                            )
+                                            };${max(config.top.x, config.bottom.x)};${max(config.top.y, config.bottom.y)}",
+                                            start = 0,
+                                            display = 100,
+                                            deviceType = "mobile",
+                                            x = centerX.toString(),
+                                            y = centerY.toString(),
+                                            sortingOrder = "distance"
+                                        )
+                                    ),
+                                    query = "query vaccineList(\$input: RestsInput, \$businessesInput: RestsBusinessesInput) {\n" +
+                                        "  rests(input: \$input) {\n" +
+                                        "    businesses(input: \$businessesInput) {\n" +
+                                        "      items {\n" +
+                                        "        id\n" +
+                                        "        name\n" +
+                                        "        roadAddress\n" +
+                                        "        vaccineQuantity {\n" +
+                                        "          totalQuantity\n" +
+                                        "          totalQuantityStatus\n" +
+                                        "          vaccineOrganizationCode\n" +
+                                        "          list {\n" +
+                                        "            quantity\n" +
+                                        "            quantityStatus\n" +
+                                        "            vaccineType\n" +
+                                        "            __typename\n" +
+                                        "          }\n" +
+                                        "          __typename\n" +
+                                        "        }\n" +
+                                        "      }" +
+                                        "}}}"
+                                )
+                            )
+                        }
+                    )
                 )
-                .header(NORMAL_HEADERS)
+                .header(NAVER_HEADERS)
                 .timeout(5000)
-                .responseObject<FindVaccineResult>(mapper = mapper)
+                .responseObject<List<VaccineSearchResult>>(mapper = mapper)
                 .third
 
             fuelError?.let {
-                close(throwable = it.exception)
+                if (it.response.statusCode == 500) {
+                    log.warn("백신 검색 서버 내부에서 오류 발생 (HTTP CODE 500). 재시도합니다.")
+                } else {
+                    close(throwable = it.exception)
+                }
             }
 
             response?.let { result ->
-                result.organizations.forEach {
-                    if (it.status == "AVAILABLE" || it.leftCounts != 0) {
-                        log.info("${it.orgName}에서 백신을 ${it.leftCounts}개 발견했습니다.")
-                        log.info("주소는 ${it.address}입니다.")
+                result.first().data.rests?.businesses?.items?.forEach topLevelForEach@{
+                    if (it.vaccineQuantity.totalQuantity > 0) {
+                        log.info("${it.name}에서 백신을 ${it.vaccineQuantity.totalQuantity}개 발견했습니다.")
+                        log.info("주소는 ${it.roadAddress}입니다.")
 
-                        val vaccineFoundCode = if (config.vaccineType == "ANY") {
-                            ignoreSsl()
-                            val (checkOrganizationResponse, checkOrganizationFuelError) = fuelManager
-                                .get("https://vaccine.kakao.com/api/v3/org/org_code/${it.orgCode}")
-                                .header(VACCINE_HEADER)
-                                .header(
-                                    Headers.COOKIE,
-                                    mutableListOf<String>().apply {
-                                        cookies.forEach { cookie ->
-                                            if (cookie is DecryptedCookie) {
-                                                add(cookie.name + "=" + cookie.decryptedValue)
-                                            }
-                                        }
-                                    }.joinToString("; ")
-                                )
-                                .responseObject<OrganizationInfos>()
-                                .third
-
-                            checkOrganizationFuelError?.let { fe ->
-                                close(fe.exception)
-                            }
-                            checkOrganizationResponse?.let { infos ->
-                                infos.lefts.forEach { info ->
-                                    if (info.leftCount != 0) {
-                                        log.info("${info.vaccineName} 백신을 ${info.leftCount}개 발견했습니다.")
-                                        info.vaccineCode
-                                    } else {
-                                        log.error("${info.vaccineName} 백신이 없습니다.")
-                                    }
+                        var vaccineFoundCode: String? = null
+                        if (config.vaccineType == "ANY") {
+                            it.vaccineQuantity.list.forEach { vaccineInfo ->
+                                if (vaccineInfo.quantity > 0) {
+                                    vaccineFoundCode = VACCINE_CANDIDATES_MAP.getValue(vaccineInfo.vaccineType).code
+                                    // 될 수 있는 경우 AZ 대신 화이자 / 모더나 선택
                                 }
                             }
-                            return@forEach
                         } else {
-                            config.vaccineType
+                            for (vaccineInfo in it.vaccineQuantity.list) {
+                                if (KAKAO_TO_NAVER_MAP[config.vaccineType] == vaccineInfo.vaccineType && vaccineInfo.quantity > 0) {
+                                    vaccineFoundCode = config.vaccineType
+                                    break
+                                }
+                            }
+                        }
+
+                        if (vaccineFoundCode === null) {
+                            log.error("백신이 없습니다.")
+                            return@topLevelForEach
                         }
 
                         log.info("$vaccineFoundCode 백신으로 예약을 시도합니다.")
 
-                        if (tryReservation(it.orgCode, vaccineFoundCode)) {
+                        if (tryReservation(it.vaccineQuantity.vaccineOrganizationCode, vaccineFoundCode!!)) {
                             close()
                         }
                     }
@@ -489,6 +535,14 @@ class App {
             "Referer" to "https://vaccine-map.kakao.com/"
         )
 
+        val NAVER_HEADERS = mapOf(
+            "Accept" to "application/json, text/plain, */*",
+            "Content-Type" to "application/json;charset=utf-8",
+            "Origin" to "https://m.place.naver.com",
+            "User-Agent" to "Mozilla/5.0 (iPhone; CPU iPhone OS 14_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 KAKAOTALK 9.4.2",
+            "Referer" to "https://m.place.naver.com/rest/vaccine?vaccineFilter=used"
+        )
+
         val VACCINE_HEADER = mapOf(
             "Accept" to "application/json, text/plain, */*",
             "Content-Type" to "application/json;charset=utf-8",
@@ -502,12 +556,26 @@ class App {
             VaccineType("아무거나", "ANY"),
             VaccineType("화이자", "VEN00013"),
             VaccineType("모더나", "VEN00014"),
-            VaccineType("아스트라제네카", "VEN00015"),
+            VaccineType("AZ", "VEN00015"),
             VaccineType("얀센", "VEN00016"),
             VaccineType(UNUSED, "VEN00017"),
             VaccineType(UNUSED, "VEN00018"),
             VaccineType(UNUSED, "VEN00019"),
             VaccineType(UNUSED, "VEN00020")
+        )
+
+        val VACCINE_CANDIDATES_MAP = mapOf(
+            "화이자" to VACCINE_CANDIDATES[1],
+            "모더나" to VACCINE_CANDIDATES[2],
+            "AZ" to VACCINE_CANDIDATES[3],
+            "얀센" to VACCINE_CANDIDATES[4]
+        )
+
+        val KAKAO_TO_NAVER_MAP = mapOf(
+            VACCINE_CANDIDATES_MAP.getValue("화이자").code to "화이자",
+            VACCINE_CANDIDATES_MAP.getValue("모더나").code to "모더나",
+            VACCINE_CANDIDATES_MAP.getValue("AZ").code to "AZ",
+            VACCINE_CANDIDATES_MAP.getValue("얀센").code to "얀센"
         )
     }
 }
