@@ -4,7 +4,7 @@ data class VaccineSearchResult(
     val data: Data
 ) {
     data class Data(
-        val rests: Rests
+        val rests: Rests?
     ) {
         data class Rests(
             val businesses: Businesses

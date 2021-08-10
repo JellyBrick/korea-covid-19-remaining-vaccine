@@ -286,7 +286,7 @@ class App {
             }
 
             response?.let { result ->
-                result.first().data.rests.businesses.items.forEach topLevelForEach@{
+                result.first().data.rests?.businesses?.items?.forEach topLevelForEach@{
                     if (it.vaccineQuantity.totalQuantity > 0) {
                         log.info("${it.name}에서 백신을 ${it.vaccineQuantity.totalQuantity}개 발견했습니다.")
                         log.info("주소는 ${it.roadAddress}입니다.")
