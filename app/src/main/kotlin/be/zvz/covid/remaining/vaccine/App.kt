@@ -189,14 +189,20 @@ class App {
             }
 
             if (vaccineCode.startsWith("FORCE:")) {
-                val forceCode = vaccineCode.split("FORCE:")[1].trim()
+                val forceNameAndCode = vaccineCode.split("FORCE:")[1].trim().split(':')
+                val forceName = forceNameAndCode[1].trim()
+                val forceCode = forceNameAndCode[2].trim()
                 println(
                     "경고: 강제 코드 입력모드를 사용하셨습니다.\n" +
                         "이 모드는 새로운 백신이 예약된 코드로 '등록되지 않은 경우에만' 사용해야 합니다.\n" +
                         "입력하신 코드가 정상적으로 작동하는 백신 코드인지 필히 확인해주세요.\n" +
+                        "현재 이름: $forceName\n" +
                         "현재 코드: $forceCode"
                 )
-                return VaccineType("(강제)", forceCode)
+                val vaccineType = VaccineType(forceName, forceCode)
+                VACCINE_CANDIDATES_MAP[vaccineType.name] = vaccineType.code
+                KAKAO_TO_NAVER_MAP[vaccineType.code] = vaccineType.name
+                return vaccineType
             }
 
             VACCINE_CANDIDATES.forEach {
@@ -304,18 +310,33 @@ class App {
                         log.info("주소는 ${it.roadAddress}입니다.")
 
                         var vaccineFoundCode: String? = null
-                        if (config.vaccineType == "ANY") {
-                            it.vaccineQuantity.list.forEach { vaccineInfo ->
-                                if (vaccineInfo.quantity > 0) {
-                                    vaccineFoundCode = VACCINE_CANDIDATES_MAP.getValue(vaccineInfo.vaccineType).code
-                                    // 될 수 있는 경우 AZ 대신 화이자 / 모더나 선택
+                        when (config.vaccineType) {
+                            ANY_TYPE -> {
+                                it.vaccineQuantity.list.forEach { vaccineInfo ->
+                                    if (vaccineInfo.quantity > 0) {
+                                        vaccineFoundCode = VACCINE_CANDIDATES_MAP.getValue(vaccineInfo.vaccineType)
+                                        // 될 수 있는 경우 AZ 대신 화이자 / 모더나 선택
+                                    }
                                 }
                             }
-                        } else {
-                            for (vaccineInfo in it.vaccineQuantity.list) {
-                                if (KAKAO_TO_NAVER_MAP[config.vaccineType] == vaccineInfo.vaccineType && vaccineInfo.quantity > 0) {
-                                    vaccineFoundCode = config.vaccineType
-                                    break
+                            PFI_MOD_TYPE -> {
+                                for (vaccineInfo in it.vaccineQuantity.list) {
+                                    if (vaccineInfo.quantity > 0) {
+                                        when (vaccineInfo.vaccineType) {
+                                            "화이자", "모더나" -> {
+                                                vaccineFoundCode = VACCINE_CANDIDATES_MAP.getValue(vaccineInfo.vaccineType)
+                                                break
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            else -> {
+                                for (vaccineInfo in it.vaccineQuantity.list) {
+                                    if (vaccineInfo.quantity > 0 && KAKAO_TO_NAVER_MAP[config.vaccineType] == vaccineInfo.vaccineType) {
+                                        vaccineFoundCode = config.vaccineType
+                                        break
+                                    }
                                 }
                             }
                         }
@@ -558,8 +579,12 @@ class App {
             "Referer" to "https://vaccine.kakao.com/"
         )
 
+        const val ANY_TYPE = "ANY"
+        const val PFI_MOD_TYPE = "PFIMOD"
+
         val VACCINE_CANDIDATES = arrayOf(
-            VaccineType("아무거나", "ANY"),
+            VaccineType("아무거나", ANY_TYPE),
+            VaccineType("화이자 & 모더나", PFI_MOD_TYPE),
             VaccineType("화이자", "VEN00013"),
             VaccineType("모더나", "VEN00014"),
             VaccineType("AZ", "VEN00015"),
@@ -570,19 +595,8 @@ class App {
             VaccineType(UNUSED, "VEN00020")
         )
 
-        val VACCINE_CANDIDATES_MAP = mapOf(
-            "화이자" to VACCINE_CANDIDATES[1],
-            "모더나" to VACCINE_CANDIDATES[2],
-            "AZ" to VACCINE_CANDIDATES[3],
-            "얀센" to VACCINE_CANDIDATES[4]
-        )
-
-        val KAKAO_TO_NAVER_MAP = mapOf(
-            VACCINE_CANDIDATES_MAP.getValue("화이자").code to "화이자",
-            VACCINE_CANDIDATES_MAP.getValue("모더나").code to "모더나",
-            VACCINE_CANDIDATES_MAP.getValue("AZ").code to "AZ",
-            VACCINE_CANDIDATES_MAP.getValue("얀센").code to "얀센"
-        )
+        val VACCINE_CANDIDATES_MAP = VACCINE_CANDIDATES.associate { (name, code) -> name to code }.toMutableMap()
+        val KAKAO_TO_NAVER_MAP = VACCINE_CANDIDATES_MAP.entries.associate { (name, code) -> code to name }.toMutableMap()
     }
 }
 
