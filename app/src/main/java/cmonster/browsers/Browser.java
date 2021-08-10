@@ -18,7 +18,7 @@ public abstract class Browser {
 	/**
 	 * A file that should be used to make a temporary copy of the browser's cookie store
 	 */
-    File cookieStoreCopy = new File(".cookies.db");
+	final File cookieStoreCopy = new File(".cookies.db");
 	
 	/**
 	 * Returns all cookies

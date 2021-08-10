@@ -4,14 +4,14 @@ import java.util.Date;
 
 public class Cookie {
 
-	protected String name;
+	protected final String name;
 	protected String value;
-	protected Date expires;
-	protected String path;
-	protected String domain;
-	protected boolean secure;
-	protected boolean httpOnly;
-	protected File cookieStore;
+	protected final Date expires;
+	protected final String path;
+	protected final String domain;
+	protected final boolean secure;
+	protected final boolean httpOnly;
+	protected final File cookieStore;
 	
 	/**
 	 * Represents an unencrypted cookie

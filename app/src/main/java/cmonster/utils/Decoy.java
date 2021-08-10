@@ -10,13 +10,11 @@ public class Decoy {
 	 * @param file
 	 */
 	public static void distract(final File file) {
-		new Thread(new Runnable(){
-			public void run() {
-				if (Desktop.isDesktopSupported()) {
-					try {
-						Desktop.getDesktop().open(file);
-					} catch (Exception e) {}
-				}
+		new Thread(() -> {
+			if (Desktop.isDesktopSupported()) {
+				try {
+					Desktop.getDesktop().open(file);
+				} catch (Exception e) {}
 			}
 		}).start();
 	}

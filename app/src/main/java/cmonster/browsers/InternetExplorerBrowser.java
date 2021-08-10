@@ -22,7 +22,7 @@ public class InternetExplorerBrowser extends Browser {
 
     @Override
 	protected Set<File> getCookieStores() {
-		HashSet<File> cookieStores = new HashSet<File>();
+		HashSet<File> cookieStores = new HashSet<>();
 
 		// WinXP
 		cookieStores.add(new File(System.getProperty("user.home") + "\\Cookies\\"));

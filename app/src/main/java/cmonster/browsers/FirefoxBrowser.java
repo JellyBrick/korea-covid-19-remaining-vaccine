@@ -33,14 +33,20 @@ public class FirefoxBrowser extends Browser {
 
     @Override
 	protected Set<File> getCookieStores() {
-		HashSet<File> cookieStores = new HashSet<File>();
+		HashSet<File> cookieStores = new HashSet<>();
 		File baseDirectory = new File(System.getProperty("user.home") + "\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\");
 		if(baseDirectory.exists()) {
-			for(File profile : baseDirectory.listFiles()) {
-				if(profile.isDirectory() && profile.getName().endsWith(".default")) {
-					for(File file : profile.listFiles()) {
-						if(file.isFile() && file.getName().equals("cookies.sqlite")) {
-							cookieStores.add(file);
+			File[] baseDirectoryListFiles = baseDirectory.listFiles();
+			if (baseDirectoryListFiles != null) {
+				for (File profile : baseDirectoryListFiles) {
+					if (profile.isDirectory() && profile.getName().endsWith(".default")) {
+						File[] profileListFiles = profile.listFiles();
+						if (profileListFiles != null) {
+							for (File file : profileListFiles) {
+								if (file.isFile() && file.getName().equals("cookies.sqlite")) {
+									cookieStores.add(file);
+								}
+							}
 						}
 					}
 				}

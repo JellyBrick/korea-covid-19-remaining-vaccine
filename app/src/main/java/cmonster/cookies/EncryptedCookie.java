@@ -5,7 +5,7 @@ import java.util.Date;
 
 public class EncryptedCookie extends Cookie {
 
-	protected byte[] encryptedValue;
+	protected final byte[] encryptedValue;
 
 	public byte[] getEncryptedValue() {
 		return encryptedValue;
