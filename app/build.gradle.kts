@@ -32,7 +32,7 @@ dependencies {
     implementation(group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8")
 
     // This dependency is used by the application.
-    implementation(group = "com.fasterxml.jackson.core", name = "jackson-databind", version = "2.13.0")
+    implementation(group = "com.fasterxml.jackson.core", name = "jackson-databind", version = "2.13.1")
     implementation(group = "com.fasterxml.jackson.core", name = "jackson-core", version = "2.13.1")
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = "2.13.0")
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-afterburner", version = "2.13.1")
