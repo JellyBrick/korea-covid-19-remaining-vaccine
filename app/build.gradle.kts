@@ -45,7 +45,7 @@ dependencies {
 
     implementation(group = "org.apache.maven.shared", name = "maven-shared-utils", version = "3.3.4")
     implementation(group = "net.java.dev.jna", name = "jna", version = "5.11.0")
-    implementation(group = "net.java.dev.jna", name = "jna-platform", version = "5.10.0")
+    implementation(group = "net.java.dev.jna", name = "jna-platform", version = "5.11.0")
 
     implementation(group = "commons-codec", name = "commons-codec", version = "1.15")
 
