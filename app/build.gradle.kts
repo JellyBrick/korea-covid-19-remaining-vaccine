@@ -33,7 +33,7 @@ dependencies {
 
     // This dependency is used by the application.
     implementation(group = "com.fasterxml.jackson.core", name = "jackson-databind", version = "2.13.2.2")
-    implementation(group = "com.fasterxml.jackson.core", name = "jackson-core", version = "2.13.2")
+    implementation(group = "com.fasterxml.jackson.core", name = "jackson-core", version = "2.13.3")
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-kotlin", version = "2.13.2")
     implementation(group = "com.fasterxml.jackson.module", name = "jackson-module-afterburner", version = "2.13.3")
 
